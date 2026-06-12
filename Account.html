@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Budget Flow Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e3a8a, #020617);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Glassmorphic Card Style */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Header & Clock */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #clock {
+            font-size: 0.9rem;
+            font-family: monospace;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .text-green { color: #34d399; }
+        .text-blue { color: #38bdf8; }
+        .text-rose { color: #fb7185; }
+
+        /* Form Inputs */
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        select option {
+            background: #1e293b;
+            color: white;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* History List */
+        .history-header {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #38bdf8;
+        }
+
+        .tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .tx-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        .tx-item.income {
+            border-left: 4px solid #34d399;
+        }
+
+        .tx-item.expense {
+            border-left: 4px solid #fb7185;
+        }
+
+        .tx-info h4 {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .tx-info span {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .tx-amount {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .delete-btn {
+            background: none;
+            color: #64748b;
+            border: none;
+            padding: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .delete-btn:hover {
+            color: #fb7185;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Top Bar -->
+        <div class="glass-card header">
+            <div class="brand-title">WealthFlow</div>
+            <div id="clock">00:00:00</div>
+        </div>
+
+        <!-- Dashboard Summary -->
+        <div class="glass-card dashboard-grid">
+            <div class="full-width">
+                <div class="stat-label">งบประมาณหลักประจำเดือน (เงินเดือน / ทุน)</div>
+                <input type="number" id="incomeInput" placeholder="ระบุงบหลัก เช่น 10000" onchange="updateIncome(this.value)">
+            </div>
+            <div>
+                <div class="stat-label">รายรับเสริม (+)</div>
+                <div class="stat-value text-green" id="totalExtra">฿0</div>
+            </div>
+            <div>
+                <div class="stat-label">รายจ่ายทั้งหมด (-)</div>
+                <div class="stat-value text-rose" id="totalExpense">฿0</div>
+            </div>
+            <div class="full-width" style="margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <div class="stat-label">เงินสุทธิคงเหลือ</div>
+                <div class="stat-value text-blue" id="balance" style="font-size: 1.5rem;">฿0</div>
+            </div>
+        </div>
+
+        <!-- Add Transaction Form -->
+        <div class="glass-card">
+            <div class="history-header">➕ บันทึกรายการประจำวัน</div>
+            
+            <div class="input-group">
+                <label>ประเภทรายการ</label>
+                <select id="txType">
+                    <option value="expense" selected>📉 รายจ่าย (Expense)</option>
+                    <option value="income">📈 รายรับเพิ่ม (Extra Income)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>ชื่อรายการ</label>
+                <input type="text" id="txName" placeholder="เช่น ค่าข้าว, ได้เงินพิเศษ, ขายของได้">
+            </div>
+            
+            <div class="input-group">
+                <label>จำนวนเงิน (บาท)</label>
+                <input type="number" id="txAmount" placeholder="0.00">
+            </div>
+            <button onclick="addTransaction()">บันทึกลงเครื่อง</button>
+        </div>
+
+        <!-- History Log -->
+        <div class="glass-card">
+            <div class="history-header">📊 รายการทั้งหมดในเดือนนี้</div>
+            <div class="tx-list" id="txList">
+                <!-- Data will inject here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // State Management
+        let appState = {
+            income: 0,
+            transactions: []
+        };
+
+        // Load data on startup
+        window.onload = function() {
+            const savedState = localStorage.getItem('monthly_budget_state');
+            if (savedState) {
+                appState = JSON.parse(savedState);
+                document.getElementById('incomeInput').value = appState.income || '';
+            }
+            initClock();
+            render();
+        };
+
+        // Real-time Clock Logic
+        function initClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+            }, 1000);
+        }
+
+        // Save to localStorage
+        function saveToStorage() {
+            localStorage.setItem('monthly_budget_state', JSON.stringify(appState));
+        }
+
+        // Action Handlers
+        function updateIncome(val) {
+            appState.income = parseFloat(val) || 0;
+            saveToStorage();
+            render();
+        }
+
+        function addTransaction() {
+            const typeInput = document.getElementById('txType');
+            const nameInput = document.getElementById('txName');
+            const amountInput = document.getElementById('txAmount');
+            
+            const type = typeInput.value;
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if(!name || isNaN(amount) || amount <= 0) {
+                alert('ใส่ข้อมูลให้ครบถ้วนก่อนนะน้องชาย!');
+                return;
+            }
+
+            const newTx = {
+                id: Date.now(),
+                type: type,
+                name: name,
+                amount: amount,
+                date: new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+            };
+
+            appState.transactions.unshift(newTx);
+            saveToStorage();
+            render();
+
+            // Clear inputs
+            nameInput.value = '';
+            amountInput.value = '';
+            typeInput.value = 'expense'; // Reset to default
+        }
+
+        function deleteTransaction(id) {
+            appState.transactions = appState.transactions.filter(tx => tx.id !== id);
+            saveToStorage();
+            render();
+        }
+
+        // Render UI
+        function render() {
+            const txListEl = document.getElementById('txList');
+            txListEl.innerHTML = '';
+
+            let totalExpense = 0;
+            let totalExtraIncome = 0;
+
+            appState.transactions.forEach(tx => {
+                // Compatibility fallback for older logs without type
+                const txType = tx.type || 'expense'; 
+                const isIncome = txType === 'income';
+
+                if (isIncome) {
+                    totalExtraIncome += tx.amount;
+                } else {
+                    totalExpense += tx.amount;
+                }
+
+                const item = document.createElement('div');
+                item.className = `tx-item ${txType}`;
+                item.innerHTML = `
+                    <div class="tx-info">
+                        <h4>${tx.name}</h4>
+                        <span>${tx.date}</span>
+                    </div>
+                    <div class="tx-amount">
+                        <span class="${isIncome ? 'text-green' : 'text-rose'}">
+                            ${isIncome ? '+' : '-'}${tx.amount.toLocaleString()} ฿
+                        </span>
+                        <button class="delete-btn" onclick="deleteTransaction(${tx.id})">❌</button>
+                    </div>
+                `;
+                txListEl.appendChild(item);
+            });
+
+            if(appState.transactions.length === 0) {
+                txListEl.innerHTML = `<div style="text-align:center; color:#64748b; padding:20px; font-size:0.9rem;">ยังไม่มีรายการในเดือนนี้ ลุยเลย!</div>`;
+            }
+
+            // Calculations
+            const netBalance = appState.income + totalExtraIncome - totalExpense;
+
+            // Display bindings
+            document.getElementById('totalExtra').innerText = `฿${totalExtraIncome.toLocaleString()}`;
+            document.getElementById('totalExpense').innerText = `฿${totalExpense.toLocaleString()}`;
+            document.getElementById('balance').innerText = `฿${netBalance.toLocaleString()}`;
+            
+            // Dynamic color for net balance
+            const balanceEl = document.getElementById('balance');
+            if (netBalance < 0) {
+                balanceEl.className = "stat-value text-rose";
+            } else {
+                balanceEl.className = "stat-value text-blue";
+            }
+        }
+    </script>
+</body>
+</html>
